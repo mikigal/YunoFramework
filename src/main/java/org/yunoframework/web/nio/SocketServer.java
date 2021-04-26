@@ -1,5 +1,6 @@
 package org.yunoframework.web.nio;
 
+import org.yunoframework.web.Yuno;
 import org.yunoframework.web.nio.RequestHandler;
 
 import java.io.IOException;
@@ -20,15 +21,18 @@ public class SocketServer {
 	private ServerSocketChannel serverChannel;
 	private Selector selector;
 
+	private Yuno yuno;
+
 	/**
 	 * Creates instance of NIO server
 	 *
+	 * @param yuno instance of Yuno
 	 * @param threads number of threads used for handling connections
 	 */
-	public SocketServer(int threads) {
+	public SocketServer(Yuno yuno, int threads) {
 		this.buffer = ByteBuffer.allocate(8192);
-
 		this.threadPool = Executors.newFixedThreadPool(threads);
+		this.yuno = yuno;
 	}
 
 	/**
@@ -100,7 +104,13 @@ public class SocketServer {
 				return;
 			}
 
-			threadPool.execute(() -> new RequestHandler().handle(channel, received.toString()));
+			threadPool.execute(() -> {
+				try {
+					new RequestHandler(yuno, channel, received.toString()).handle();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			});
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

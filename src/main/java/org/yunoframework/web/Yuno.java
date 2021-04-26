@@ -1,18 +1,25 @@
 package org.yunoframework.web;
 
+import org.yunoframework.web.http.HttpMethod;
 import org.yunoframework.web.nio.SocketServer;
+import org.yunoframework.web.routing.RouteHandler;
+import org.yunoframework.web.routing.RouteInfo;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.HashSet;
+import java.util.Set;
 
 public class Yuno {
 
 	private final int threads;
+	private final Set<RouteInfo> routes;
 	private final SocketServer socketServer;
 
 	private Yuno(int threads) {
 		this.threads = threads;
-		this.socketServer = new SocketServer(this.threads);
+		this.routes = new HashSet<>();
+		this.socketServer = new SocketServer(this, this.threads);
 	}
 
 	/**
@@ -37,6 +44,42 @@ public class Yuno {
 	 */
 	public void listen(String host, int port) throws IOException {
 		this.socketServer.listen(new InetSocketAddress(host, port));
+	}
+
+	/**
+	 * Searches RouteInfo of given data
+	 * @param method method of request
+	 * @param path path of endpoint
+	 * @return it's RouteInfo if found, else null
+	 */
+	public RouteInfo findRoute(HttpMethod method, String path) {
+		path = path.toLowerCase();
+		for (RouteInfo routeInfo : this.routes) {
+			if (routeInfo.getPath().equals(path) && routeInfo.getMethod() == method) {
+				return routeInfo;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Registers route
+	 * @param method HTTP method
+	 * @param path path of endpoint
+	 * @param handler handler of endpoint {@see RouteHandler}
+	 */
+	public void route(HttpMethod method, String path, RouteHandler handler) {
+		this.routes.add(new RouteInfo(method, path, handler));
+	}
+
+	/**
+	 * Registers route for GET method
+	 * @param path path of endpoint
+	 * @param handler handler of endpoint {@see RouteHandler}
+	 */
+	public void get(String path, RouteHandler handler) {
+		this.route(HttpMethod.GET, path, handler);
 	}
 
 	public static Yuno.Builder builder() {

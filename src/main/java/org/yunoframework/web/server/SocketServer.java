@@ -1,7 +1,6 @@
-package org.yunoframework.web.nio;
+package org.yunoframework.web.server;
 
 import org.yunoframework.web.Yuno;
-import org.yunoframework.web.nio.RequestHandler;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -15,7 +14,7 @@ import java.util.concurrent.*;
  */
 public class SocketServer {
 
-	private final ExecutorService threadPool;
+	private final ThreadPoolExecutor threadPool;
 	private final ByteBuffer buffer;
 
 	private ServerSocketChannel serverChannel;
@@ -31,7 +30,8 @@ public class SocketServer {
 	 */
 	public SocketServer(Yuno yuno, int threads) {
 		this.buffer = ByteBuffer.allocate(8192);
-		this.threadPool = Executors.newFixedThreadPool(threads);
+		this.threadPool = new ThreadPoolExecutor(threads, threads, 0, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(),  RequestHandlerThread::new);
+		this.threadPool.prestartAllCoreThreads();
 		this.yuno = yuno;
 	}
 

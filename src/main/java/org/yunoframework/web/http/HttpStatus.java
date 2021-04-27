@@ -85,12 +85,12 @@ public enum HttpStatus {
 
 	private final int code;
 	private final HttpStatusType type;
-	private final String reason;
+	private final String message;
 
-	HttpStatus(int code, String reason) {
+	HttpStatus(int code, String message) {
 		this.code = code;
 		this.type = HttpStatusType.typeOf(this);
-		this.reason = reason;
+		this.message = code + " " + message;
 	}
 
 	/**
@@ -124,10 +124,10 @@ public enum HttpStatus {
 	}
 
 	/**
-	 * Returns reason of HttpStatus
-	 * @return reason of HttpStatus
+	 * Returns message of HttpStatus
+	 * @return message of HttpStatus
 	 */
-	public String getReason() {
-		return this.reason;
+	public String getMessage() {
+		return this.message;
 	}
 }

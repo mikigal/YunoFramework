@@ -1,7 +1,7 @@
 package org.yunoframework.web;
 
 import org.yunoframework.web.http.HttpMethod;
-import org.yunoframework.web.nio.SocketServer;
+import org.yunoframework.web.server.SocketServer;
 import org.yunoframework.web.routing.RouteHandler;
 import org.yunoframework.web.routing.RouteInfo;
 

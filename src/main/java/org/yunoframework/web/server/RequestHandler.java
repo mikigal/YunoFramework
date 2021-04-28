@@ -4,6 +4,7 @@ import org.yunoframework.web.Request;
 import org.yunoframework.web.Response;
 import org.yunoframework.web.Yuno;
 import org.yunoframework.web.http.HttpStatus;
+import org.yunoframework.web.routing.MiddlewareInfo;
 import org.yunoframework.web.routing.RouteInfo;
 import org.yunoframework.web.http.HttpParser;
 
@@ -53,25 +54,35 @@ public class RequestHandler {
 				return;
 			}
 
-			RouteInfo routeInfo = yuno.findRoute(request.getMethod(), request.getPath());
+			RouteInfo routeInfo = yuno.findRoute(request.getPath());
 			if (routeInfo == null) {
 				this.connection.send(this.generateErrorResponse(HttpStatus.NOT_FOUND));
 				return;
 			}
 
+			if (routeInfo.getMethod() != request.getMethod()) {
+				this.connection.send(this.generateErrorResponse(HttpStatus.METHOD_NOT_ALLOWED));
+				return;
+			}
+
 			Response response = new Response(HttpStatus.OK);
+			for (MiddlewareInfo middleware : this.yuno.getMiddlewares()) {
+				middleware.getHandler().apply(request, response);
+			}
+
 			routeInfo.getRouteHandler().apply(request, response);
 			this.connection.send(response);
 		} catch (Exception e) {
 			this.connection.send(this.generateErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR));
+			throw new RuntimeException("An exception occurred while processing request", e);
 		}
 	}
 
 	private Response generateErrorResponse(HttpStatus status) {
 		Response response = new Response(status);
-		response.setHeader("Connection", "close");
 		response.html("<html><head><title>" + status.getMessage() + "</title></head>" +
 				"<body><h1>" + status.getMessage() + "</h1><hr /><h3>Yuno/1.0</h3></body></html>", status);
+		response.close();
 
 		return response;
 	}

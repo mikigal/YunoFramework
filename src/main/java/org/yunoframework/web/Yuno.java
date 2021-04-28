@@ -1,14 +1,15 @@
 package org.yunoframework.web;
 
 import org.yunoframework.web.http.HttpMethod;
+import org.yunoframework.web.routing.MiddlewareInfo;
 import org.yunoframework.web.server.SocketServer;
-import org.yunoframework.web.routing.RouteHandler;
+import org.yunoframework.web.routing.Handler;
 import org.yunoframework.web.routing.RouteInfo;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Yuno {
 
@@ -18,6 +19,8 @@ public class Yuno {
 	public static final String VERSION = "1.0.0";
 
 	private final Set<RouteInfo> routes;
+	private List<MiddlewareInfo> middlewares;
+
 	private final SocketServer socketServer;
 
 	/**
@@ -27,14 +30,17 @@ public class Yuno {
 	 */
 	private Yuno(int threads) {
 		this.routes = new HashSet<>();
+		this.middlewares = new ArrayList<>();
 		this.socketServer = new SocketServer(this, threads);
 	}
 
 	/**
 	 * Starts Yuno server
 	 * @param address address with port to bind server, it accepts various host:port formats like ":8080", "[::0]:8080", etc
+	 * @throws IOException when network exception occurs
+	 * @throws IllegalStateException when address is invalid
 	 */
-	public void listen(String address) throws IOException {
+	public void listen(String address) throws IOException, IllegalStateException {
 		String[] split = address.split(":");
 		if (split.length == 0) {
 			throw new IllegalStateException("Invalid address");
@@ -56,14 +62,13 @@ public class Yuno {
 
 	/**
 	 * Searches RouteInfo of given data
-	 * @param method method of request
 	 * @param path path of endpoint
 	 * @return it's RouteInfo if found, else null
 	 */
-	public RouteInfo findRoute(HttpMethod method, String path) {
+	public RouteInfo findRoute(String path) {
 		path = path.toLowerCase();
 		for (RouteInfo routeInfo : this.routes) {
-			if (routeInfo.getPath().equals(path) && routeInfo.getMethod() == method) {
+			if (routeInfo.getPath().equals(path)) {
 				return routeInfo;
 			}
 		}
@@ -72,12 +77,32 @@ public class Yuno {
 	}
 
 	/**
+	 * Registers middleware, middleware with lower priority will be called first
+	 * @param handler Handler of middleware {@see Handler}
+	 * @param priority priority of middleware
+	 */
+	public void middleware(Handler handler, int priority) {
+		this.middlewares.add(new MiddlewareInfo(handler, priority));
+		this.middlewares = this.middlewares.stream()
+				.sorted(Comparator.comparingInt(MiddlewareInfo::getPriority))
+				.collect(Collectors.toList());
+	}
+
+	/**
+	 * Returns list of middlewares sorted by priority (from lowest to highest)
+	 * @return list of middlewares sorted by priority (from lowest to highest)
+	 */
+	public List<MiddlewareInfo> getMiddlewares() {
+		return middlewares;
+	}
+
+	/**
 	 * Registers route
 	 * @param method HTTP method
 	 * @param path path of endpoint
 	 * @param handler handler of endpoint {@see RouteHandler}
 	 */
-	public void route(HttpMethod method, String path, RouteHandler handler) {
+	public void route(HttpMethod method, String path, Handler handler) {
 		this.routes.add(new RouteInfo(method, path, handler));
 	}
 
@@ -86,7 +111,7 @@ public class Yuno {
 	 * @param path path of endpoint
 	 * @param handler handler of endpoint {@see RouteHandler}
 	 */
-	public void get(String path, RouteHandler handler) {
+	public void get(String path, Handler handler) {
 		this.route(HttpMethod.GET, path, handler);
 	}
 

@@ -4,13 +4,13 @@ import org.yunoframework.web.Request;
 import org.yunoframework.web.Response;
 
 /**
- * Handler of route
+ * Handler of route or middleware
  *
- * There's 2 ways to use RouteHandler.
- * 1. Create manually method like <code>public static void endpoint(Request request, Response response)</code>, then register it with lambda <code>MyController::endpoint</code>
- * 2. Create new class which implement RouteHandler, then implement code of your endpoint in <code>apply(Request, Response)</code> method, then register endpoint with instance of your class
+ * There's 2 ways to use Route.
+ * 1. Create manually method like <code>public static void endpoint(Request request, Response response)</code>, then register it with lambda <code>MyClass::endpoint</code>
+ * 2. Create new class which implement Handler, then implement code of your endpoint in <code>apply(Request, Response)</code> method, then register it with instance of your class
  */
-public interface RouteHandler {
+public interface Handler {
 
 	/**
 	 * This method will be called when user send request to endpoint associated with this handler

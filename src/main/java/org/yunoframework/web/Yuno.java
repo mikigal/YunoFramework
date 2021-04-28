@@ -12,14 +12,22 @@ import java.util.Set;
 
 public class Yuno {
 
-	private final int threads;
+	/**
+	 * Current version of Yuno
+	 */
+	public static final String VERSION = "1.0.0";
+
 	private final Set<RouteInfo> routes;
 	private final SocketServer socketServer;
 
+	/**
+	 * Creates new instance of Yuno, can be called only by builder
+	 * @param threads number of used by NIO server
+	 * @see Yuno.Builder
+	 */
 	private Yuno(int threads) {
-		this.threads = threads;
 		this.routes = new HashSet<>();
-		this.socketServer = new SocketServer(this, this.threads);
+		this.socketServer = new SocketServer(this, threads);
 	}
 
 	/**
@@ -82,10 +90,17 @@ public class Yuno {
 		this.route(HttpMethod.GET, path, handler);
 	}
 
+	/**
+	 * Returns new instance of Yuno's builder
+	 * @return new instance of Yuno's builder
+	 */
 	public static Yuno.Builder builder() {
 		return new Yuno.Builder();
 	}
 
+	/**
+	 * Yuno's builder
+	 */
 	public static final class Builder {
 		private int threads = 1;
 

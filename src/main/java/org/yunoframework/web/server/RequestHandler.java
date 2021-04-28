@@ -1,6 +1,7 @@
 package org.yunoframework.web.server;
 
 import org.yunoframework.web.Request;
+import org.yunoframework.web.Response;
 import org.yunoframework.web.Yuno;
 import org.yunoframework.web.http.HttpStatus;
 import org.yunoframework.web.routing.RouteInfo;
@@ -10,9 +11,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * It handles every request received by NIO server
@@ -61,38 +59,47 @@ public class RequestHandler {
 		}
 
 		Request request = HttpParser.parseRequest(rawRequest);
-		if (request == null) {
-			//this.send("malformed request 400");
+
+		try {
+			if (request == null) {
+				this.send(this.generateErrorResponse(HttpStatus.BAD_REQUEST));
+				this.channel.close();
+				return;
+			}
+
+			if (!request.getMethod().isSupported()) {
+				this.send(this.generateErrorResponse(HttpStatus.NOT_IMPLEMENTED));
+				this.channel.close();
+				return;
+			}
+
+			RouteInfo routeInfo = yuno.findRoute(request.getMethod(), request.getPath());
+			if (routeInfo == null) {
+				this.send(this.generateErrorResponse(HttpStatus.NOT_FOUND));
+				this.channel.close();
+				return;
+			}
+
+			Response response = new Response(HttpStatus.OK);
+			routeInfo.getRouteHandler().apply(request, response);
+			this.send(response);
+		} catch (Exception e) {
+			this.send(this.generateErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR));
 			this.channel.close();
-			return;
 		}
-
-		if (!request.getMethod().isSupported()) {
-			//this.send("not implemented");
-			this.channel.close();
-			return;
-		}
-
-		RouteInfo routeInfo = yuno.findRoute(request.getMethod(), request.getPath());
-		if (routeInfo == null) {
-			//this.send("not found 404");
-			this.channel.close();
-			return;
-		}
-
-		Map<String, String> headers = new HashMap<>();
-		headers.put("Date", HttpParser.DATE_FORMAT.format(new Date()));
-		headers.put("Content-Type", "application/json");
-		headers.put("Content-Length", "2");
-		headers.put("Server", "Yuno/1.0");
-		headers.put("Connection", "keep-alive");
-
-		routeInfo.getRouteHandler().apply(request);
-		this.send(HttpParser.serializeResponse(
-				this.thread.getResponseBuilder(), HttpStatus.OK, headers, "{}".getBytes(StandardCharsets.UTF_8)));
 	}
 
-	private void send(byte[] data) throws IOException {
-		this.channel.write(ByteBuffer.wrap(data));
+	private Response generateErrorResponse(HttpStatus status) {
+		// TODO: 27/04/2021 Close connection if error?
+		Response response = new Response(HttpStatus.BAD_REQUEST);
+		response.html("<html><head><title>" + status.getMessage() + "</title></head>" +
+				"<body><h1>" + status.getMessage() + "</h1><hr /><h3>Yuno/1.0</h3></body></html>");
+
+		return response;
+	}
+
+	private void send(Response response) throws IOException {
+		// TODO: 27/04/2021 Cache ByteBuffers
+		this.channel.write(ByteBuffer.wrap(HttpParser.serializeResponse(this.thread.getResponseBuilder(), response)));
 	}
 }

@@ -1,6 +1,8 @@
 package org.yunoframework.web.http;
 
 import org.yunoframework.web.Request;
+import org.yunoframework.web.Response;
+import org.yunoframework.web.Yuno;
 
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -45,6 +47,11 @@ public class HttpParser {
 		}
 	}
 
+	/**
+	 * Converts parameters as String to <code>Map<ParameterName, ParameterValue></code>
+	 * @param raw parameters as String e. g. "foo=bar&abc=def", without "?" at the beginning
+	 * @return Map with parsed parameters
+	 */
 	private static Map<String, String> parseParams(String raw) {
 		Map<String, String> params = new HashMap<>();
 		String[] rawParams = raw.split("&");
@@ -56,6 +63,11 @@ public class HttpParser {
 		return params;
 	}
 
+	/**
+	 * Parse headers from HTTP request given as String to to <code>Map<HeaderName, HeaderValue></code>
+	 * @param requestLines all lines as request
+	 * @return Map with parser parameters
+	 */
 	private static Map<String, String> parseHeaders(String[] requestLines) {
 		Map<String, String> headers = new HashMap<>();
 		for (int i = 1; i < requestLines.length - 1; i++) {
@@ -66,19 +78,38 @@ public class HttpParser {
 		return headers;
 	}
 
-	public static byte[] serializeResponse(StringBuilder responseBuilder, HttpStatus status, Map<String, String> headers, byte[] responseData) {
-		responseBuilder.append("HTTP/1.1 ").append(status.getMessage()).append("\r\n");
+	/**
+	 * Serialize HTTP response to byte[]
+	 * @param responseBuilder empty StringBuilder, it should be cached response builder from {@see RequestHandlerThread}
+	 * @param response HTTP response
+	 * @return serialized response as byte array
+	 */
+	public static byte[] serializeResponse(StringBuilder responseBuilder, Response response) {
+		prepareResponse(response);
 
-		for (Map.Entry<String, String> header : headers.entrySet()) {
+		responseBuilder.append("HTTP/1.1 ").append(response.getStatus().getMessage()).append("\r\n");
+
+		for (Map.Entry<String, String> header : response.headers().entrySet()) {
 			responseBuilder.append(header.getKey()).append(": ").append(header.getValue()).append("\r\n");
 		}
 		responseBuilder.append("\n");
 
 		byte[] headersBytes = responseBuilder.toString().getBytes(StandardCharsets.UTF_8);
-		byte[] buffer = new byte[headersBytes.length + responseData.length];
+		byte[] buffer = new byte[headersBytes.length + response.getContent().length];
 
 		System.arraycopy(headersBytes, 0, buffer, 0, headersBytes.length);
-		System.arraycopy(responseData, 0, buffer, headersBytes.length, responseData.length);
+		System.arraycopy(response.getContent(), 0, buffer, headersBytes.length, response.getContent().length);
 		return buffer;
+	}
+
+	/**
+	 * Prepared response to send to client, sets required headers to HTTP response
+	 * @param response response which you have to prepare to send
+	 */
+	private static void prepareResponse(Response response) {
+		response.setHeader("Server", "Yuno/" + Yuno.VERSION);
+		response.setHeader("Date", HttpParser.DATE_FORMAT.format(new Date()));
+		response.setHeader("Connection", "keep-alive");
+		response.setHeader("Content-Length", String.valueOf(response.getContent().length));
 	}
 }

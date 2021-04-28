@@ -3,6 +3,7 @@ package org.yunoframework.web;
 import com.jsoniter.output.JsonStream;
 import org.apache.tika.Tika;
 import org.yunoframework.web.http.HttpStatus;
+import org.yunoframework.web.http.HttpStatusType;
 
 import java.io.File;
 import java.io.IOException;
@@ -114,6 +115,21 @@ public class Response {
 	public void file(File file, HttpStatus status) throws IOException {
 		byte[] bytes = Files.readAllBytes(file.toPath());
 		this.binary(bytes, new Tika().detect(bytes), status);
+	}
+
+	/**
+	 * Write redirection into response
+	 * @param target URL where you want to redirect
+	 * @param status HTTP status, must be 3xx
+	 * @throws IllegalStateException when status is not 3xx
+	 */
+	public void redirect(String target, HttpStatus status) throws IllegalStateException {
+		if (status.getType() != HttpStatusType.REDIRECTION) {
+			throw new IllegalStateException("Redirection must have 3xx HTTP status");
+		}
+
+		this.setStatus(status);
+		this.setHeader("Location", target);
 	}
 
 	/**

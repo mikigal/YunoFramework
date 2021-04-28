@@ -100,7 +100,7 @@ public class Yuno {
 	 * Registers route
 	 * @param method HTTP method
 	 * @param path path of endpoint
-	 * @param handler handler of endpoint {@see RouteHandler}
+	 * @param handler handler of endpoint {@see Handler}
 	 */
 	public void route(HttpMethod method, String path, Handler handler) {
 		this.routes.add(new RouteInfo(method, path, handler));
@@ -109,7 +109,7 @@ public class Yuno {
 	/**
 	 * Registers route for GET method
 	 * @param path path of endpoint
-	 * @param handler handler of endpoint {@see RouteHandler}
+	 * @param handler handler of endpoint {@see Handler}
 	 */
 	public void get(String path, Handler handler) {
 		this.route(HttpMethod.GET, path, handler);

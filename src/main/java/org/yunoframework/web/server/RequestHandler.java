@@ -70,7 +70,7 @@ public class RequestHandler {
 				middleware.getHandler().apply(request, response);
 			}
 
-			routeInfo.getRouteHandler().apply(request, response);
+			routeInfo.getHandler().apply(request, response);
 			this.connection.send(response);
 		} catch (Exception e) {
 			this.connection.send(this.generateErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR));

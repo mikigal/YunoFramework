@@ -9,18 +9,18 @@ public class RouteInfo {
 
 	private final HttpMethod method;
 	private final String path;
-	private final Handler routeHandler;
+	private final Handler handler;
 
 	/**
 	 * Creates instance of RouteInfo, it does not automatically register it do Yuno
 	 * @param method method of request
 	 * @param path path of request
-	 * @param routeHandler handler of route {@see RouteHandler}
+	 * @param handler handler of route {@see Handler}
 	 */
-	public RouteInfo(HttpMethod method, String path, Handler routeHandler) {
+	public RouteInfo(HttpMethod method, String path, Handler handler) {
 		this.method = method;
 		this.path = path;
-		this.routeHandler = routeHandler;
+		this.handler = handler;
 	}
 
 	public HttpMethod getMethod() {
@@ -31,7 +31,7 @@ public class RouteInfo {
 		return path;
 	}
 
-	public Handler getRouteHandler() {
-		return routeHandler;
+	public Handler getHandler() {
+		return handler;
 	}
 }

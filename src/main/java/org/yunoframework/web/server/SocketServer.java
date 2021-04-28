@@ -72,7 +72,7 @@ public class SocketServer {
 	/**
 	 * Stops server
 	 */
-	public void close() throws IOException {
+	public void stop() throws IOException {
 		this.serverChannel.close();
 		this.selector.close();
 		this.threadPool.shutdown();
@@ -85,8 +85,9 @@ public class SocketServer {
 	}
 
 	private void handleRead(SelectionKey key) {
+		SocketChannel channel = (SocketChannel) key.channel();
+
 		try {
-			SocketChannel channel = (SocketChannel) key.channel();
 			this.buffer.clear();
 			StringBuilder received = new StringBuilder();
 			int read;
@@ -106,13 +107,21 @@ public class SocketServer {
 
 			threadPool.execute(() -> {
 				try {
-					new RequestHandler(yuno, channel, received.toString()).handle();
+					new RequestHandler(yuno, received.toString(), new ClientConnection(channel)).handle();
 				} catch (IOException e) {
-					e.printStackTrace();
+					this.close(channel);
 				}
 			});
 		} catch (IOException e) {
-			e.printStackTrace();
+			this.close(channel);
+		}
+	}
+
+	private void close(SocketChannel channel) {
+		try {
+			channel.close();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 	}
 }

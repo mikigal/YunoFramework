@@ -109,7 +109,11 @@ public class HttpParser {
 	private static void prepareResponse(Response response) {
 		response.setHeader("Server", "Yuno/" + Yuno.VERSION);
 		response.setHeader("Date", HttpParser.DATE_FORMAT.format(new Date()));
-		response.setHeader("Connection", "keep-alive");
 		response.setHeader("Content-Length", String.valueOf(response.getContent().length));
+
+		// We won't override "Connection: close"
+		if (response.header("Connection") == null) {
+			response.setHeader("Connection", "keep-alive");
+		}
 	}
 }

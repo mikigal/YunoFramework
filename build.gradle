@@ -1,9 +1,29 @@
 plugins {
     id 'java'
+    id 'maven-publish'
 }
 
 group 'org.yunoframework'
 version '1.0.0-SNAPSHOT'
+
+publishing {
+    repositories {
+        maven {
+            name = "repo.mikigal.pl"
+            url = uri("https://repo.mikigal.pl/releases")
+            credentials {
+                username = System.getenv("REPO_USERNAME")
+                password = System.getenv("REPO_TOKEN")
+            }
+        }
+    }
+
+    publications {
+        distribution(MavenPublication) {
+            from(components.java)
+        }
+    }
+}
 
 repositories {
     mavenCentral()

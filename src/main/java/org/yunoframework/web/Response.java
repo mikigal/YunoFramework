@@ -179,7 +179,7 @@ public class Response {
 	 * @return status of response
 	 * @see HttpStatus
 	 */
-	public HttpStatus getStatus() {
+	public HttpStatus status() {
 		return this.status;
 	}
 
@@ -187,7 +187,15 @@ public class Response {
 	 * Returns content of response as byte array
 	 * @return content of response as byte array, if content is not set, returns 0 length byte array
 	 */
-	public byte[] getContent() {
+	public byte[] content() {
 		return content;
+	}
+
+	/**
+	 * Sets content of response to given byte array
+	 * @param content new content of response
+	 */
+	public void setContent(byte[] content) {
+		this.content = content;
 	}
 }

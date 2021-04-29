@@ -56,18 +56,18 @@ public class RequestHandler {
 				return;
 			}
 
-			if (!request.getMethod().isSupported()) {
+			if (!request.method().isSupported()) {
 				this.connection.send(this.generateErrorResponse(HttpStatus.NOT_IMPLEMENTED));
 				return;
 			}
 
-			RouteInfo routeInfo = yuno.findRoute(request.getPath());
+			RouteInfo routeInfo = yuno.findRoute(request.path());
 			if (routeInfo == null) {
 				this.connection.send(this.generateErrorResponse(HttpStatus.NOT_FOUND));
 				return;
 			}
 
-			if (routeInfo.getMethod() != request.getMethod()) {
+			if (routeInfo.getMethod() != request.method()) {
 				this.connection.send(this.generateErrorResponse(HttpStatus.METHOD_NOT_ALLOWED));
 				return;
 			}

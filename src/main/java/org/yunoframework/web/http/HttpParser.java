@@ -5,6 +5,8 @@ import org.yunoframework.web.Request;
 import org.yunoframework.web.Response;
 import org.yunoframework.web.Yuno;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -43,11 +45,13 @@ public class HttpParser {
 
 			HttpMethod method = HttpMethod.getByName(handshake[0]);
 			if (method == null) {
-				return new Request(HttpStatus.BAD_REQUEST, null, null, null, null, null);
+				return new Request(HttpStatus.BAD_REQUEST,
+						null, null, null, null, null, null);
 			}
 
 			if (!handshake[2].equalsIgnoreCase("HTTP/1.1")) {
-				return new Request(HttpStatus.HTTP_VERSION_NOT_SUPPORTED, null, null, null, null, null);
+				return new Request(HttpStatus.HTTP_VERSION_NOT_SUPPORTED,
+						null, null, null, null, null, null);
 			}
 
 			String[] endpoint = handshake[1].split("\\?");
@@ -55,14 +59,21 @@ public class HttpParser {
 			Map<String, String> params = endpoint.length == 1 ? new CaseInsensitiveMap<>() : parseParams(endpoint[1]);
 			Map<String, String> headers = parseHeaders(lines);
 
-			byte[] body = new byte[bodyPosition == -1 ? 0 : (rawRequest.length - bodyPosition)];
+			byte[] rawContent = new byte[bodyPosition == -1 ? 0 : (rawRequest.length - bodyPosition)];
 			if (bodyPosition != -1) {
-				System.arraycopy(rawRequest, bodyPosition, body, 0, rawRequest.length - bodyPosition);
+				System.arraycopy(rawRequest, bodyPosition, rawContent, 0, rawRequest.length - bodyPosition);
 			}
 
-			return new Request(HttpStatus.OK, method, path, params, headers, body);
+			Object body = null;
+			if (bodyPosition != -1 && headers.get("Content-Type") != null &&
+					headers.get("Content-Type").equalsIgnoreCase("application/x-www-form-urlencoded")) {
+				body = parseParams(new String(rawContent));
+			}
+
+			return new Request(HttpStatus.OK, method, path, params, headers, rawContent, body);
 		} catch (Exception e) {
-			return new Request(HttpStatus.BAD_REQUEST, null, null, null, null, null);
+			return new Request(HttpStatus.BAD_REQUEST,
+					null, null, null, null, null, null);
 		}
 	}
 
@@ -71,12 +82,12 @@ public class HttpParser {
 	 * @param raw parameters as String e. g. "foo=bar&abc=def", without "?" at the beginning
 	 * @return Map with parsed parameters
 	 */
-	private static Map<String, String> parseParams(String raw) {
+	private static Map<String, String> parseParams(String raw) throws UnsupportedEncodingException {
 		Map<String, String> params = new CaseInsensitiveMap<>();
 		String[] rawParams = raw.split("&");
 		for (String param : rawParams) {
 			String[] split = param.split("=");
-			params.put(split[0], split[1]);
+			params.put(URLDecoder.decode(split[0], "UTF-8"), URLDecoder.decode(split[1]));
 		}
 
 		return params;
@@ -111,7 +122,7 @@ public class HttpParser {
 	public static byte[] serializeResponse(StringBuilder responseBuilder, Response response) {
 		prepareResponse(response);
 
-		responseBuilder.append("HTTP/1.1 ").append(response.getStatus().getMessage()).append("\r\n");
+		responseBuilder.append("HTTP/1.1 ").append(response.status().getMessage()).append("\r\n");
 
 		for (Map.Entry<String, String> header : response.headers().entrySet()) {
 			responseBuilder.append(header.getKey()).append(": ").append(header.getValue()).append("\r\n");
@@ -119,10 +130,10 @@ public class HttpParser {
 		responseBuilder.append("\n");
 
 		byte[] headersBytes = responseBuilder.toString().getBytes(StandardCharsets.UTF_8);
-		byte[] buffer = new byte[headersBytes.length + response.getContent().length];
+		byte[] buffer = new byte[headersBytes.length + response.content().length];
 
 		System.arraycopy(headersBytes, 0, buffer, 0, headersBytes.length);
-		System.arraycopy(response.getContent(), 0, buffer, headersBytes.length, response.getContent().length);
+		System.arraycopy(response.content(), 0, buffer, headersBytes.length, response.content().length);
 		return buffer;
 	}
 
@@ -133,7 +144,7 @@ public class HttpParser {
 	private static void prepareResponse(Response response) {
 		response.setHeader("Server", "Yuno/" + Yuno.VERSION);
 		response.setHeader("Date", HttpParser.DATE_FORMAT.format(new Date()));
-		response.setHeader("Content-Length", String.valueOf(response.getContent().length));
+		response.setHeader("Content-Length", String.valueOf(response.content().length));
 
 		// We won't override "Connection: close"
 		if (response.header("Connection") == null) {

@@ -3,6 +3,7 @@ package org.yunoframework.web;
 import org.yunoframework.web.http.HttpMethod;
 import org.yunoframework.web.http.HttpStatus;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -15,7 +16,9 @@ public class Request {
 	private final String path;
 	private final Map<String, String> params;
 	private final Map<String, String> headers;
-	private final byte[] body;
+	private final Map<String, Object> locals;
+	private final byte[] content;
+	private Object body;
 
 	/**
 	 * Creates instance of Request, should be used by {@see HttpParser}.
@@ -25,15 +28,17 @@ public class Request {
 	 * @param path path of request
 	 * @param params params of request
 	 * @param headers headers of request
-	 * @param body body of request
+	 * @param content raw content of request
 	 */
 	public Request(HttpStatus parseResult, HttpMethod method, String path,
-				   Map<String, String> params, Map<String, String> headers, byte[] body) {
+				   Map<String, String> params, Map<String, String> headers, byte[] content, Object body) {
 		this.parseResult = parseResult;
 		this.method = method;
 		this.path = path;
 		this.params = params;
 		this.headers = headers;
+		this.locals = new HashMap<>();
+		this.content = content;
 		this.body = body;
 	}
 
@@ -76,7 +81,7 @@ public class Request {
 	 * @return method of request
 	 * @see HttpMethod
 	 */
-	public HttpMethod getMethod() {
+	public HttpMethod method() {
 		return method;
 	}
 
@@ -84,16 +89,34 @@ public class Request {
 	 * Returns path of request, without parameters
 	 * @return path of request, without parameters
 	 */
-	public String getPath() {
+	public String path() {
 		return this.path;
 	}
 
 	/**
-	 * Returns body of request, if it didn't have body will return 0 length bytes array
-	 * @return body of request, if it didn't have body will return 0 length bytes array
+	 * Returns raw content of request, if it didn't have body will return 0 length bytes array
+	 * @return raw content of request, if it didn't have body will return 0 length bytes array
 	 */
-	public byte[] getBody() {
+	public byte[] content() {
+		return content;
+	}
+
+	/**
+	 * Returns parsed body
+	 * If request was x-www-form-urlencoded returned Object will be instance of Map<String, String>
+	 * If request didn't have body it will be null
+	 * @return parsed body, null if request didn't have body
+	 */
+	public Object body() {
 		return body;
+	}
+
+	/**
+	 * Sets parsed body, can be used by middlewares
+	 * @param body new body
+	 */
+	public void setBody(Object body) {
+		this.body = body;
 	}
 
 	/**
@@ -102,5 +125,30 @@ public class Request {
 	 */
 	public HttpStatus getParseResult() {
 		return parseResult;
+	}
+
+	/**
+	 * Returns value from locals with this name
+	 * @return value from locals with this name
+	 */
+	public Object local(String name) {
+		return this.locals.get(name);
+	}
+
+	/**
+	 * Puts data into locals
+	 * @param name name of local
+	 * @param value value of local
+	 */
+	public void putLocal(String name, Object value) {
+		this.locals.put(name, value);
+	}
+
+	/**
+	 * Returns container of data from middleware
+	 * @return container of data from middleware
+	 */
+	public Map<String, Object> lLocals() {
+		return locals;
 	}
 }

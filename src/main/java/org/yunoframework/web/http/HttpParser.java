@@ -1,5 +1,6 @@
 package org.yunoframework.web.http;
 
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.yunoframework.web.Request;
 import org.yunoframework.web.Response;
 import org.yunoframework.web.Yuno;
@@ -38,7 +39,7 @@ public class HttpParser {
 
 			String[] endpoint = handshake[1].split("\\?");
 			String path = endpoint[0];
-			Map<String, String> params = endpoint.length == 1 ? new HashMap<>() : parseParams(endpoint[1]);
+			Map<String, String> params = endpoint.length == 1 ? new CaseInsensitiveMap<>() : parseParams(endpoint[1]);
 			Map<String, String> headers = parseHeaders(lines);
 
 			return new Request(method, path, params, headers);
@@ -53,7 +54,7 @@ public class HttpParser {
 	 * @return Map with parsed parameters
 	 */
 	private static Map<String, String> parseParams(String raw) {
-		Map<String, String> params = new HashMap<>();
+		Map<String, String> params = new CaseInsensitiveMap<>();
 		String[] rawParams = raw.split("&");
 		for (String param : rawParams) {
 			String[] split = param.split("=");
@@ -69,7 +70,7 @@ public class HttpParser {
 	 * @return Map with parser parameters
 	 */
 	private static Map<String, String> parseHeaders(String[] requestLines) {
-		Map<String, String> headers = new HashMap<>();
+		Map<String, String> headers = new CaseInsensitiveMap<>();
 		for (int i = 1; i < requestLines.length - 1; i++) {
 			String[] header = requestLines[i].split(": ");
 			headers.put(header[0], header[1]);

@@ -1,6 +1,7 @@
 package org.yunoframework.web;
 
 import com.jsoniter.output.JsonStream;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.tika.Tika;
 import org.yunoframework.web.http.HttpStatus;
 import org.yunoframework.web.http.HttpStatusType;
@@ -9,7 +10,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -27,7 +27,7 @@ public class Response {
 	 */
 	public Response(HttpStatus status) {
 		this.status = status;
-		this.headers = new HashMap<>();
+		this.headers = new CaseInsensitiveMap<>();
 		this.content = new byte[0];
 	}
 
@@ -133,7 +133,7 @@ public class Response {
 	}
 
 	/**
-	 * Returns value of given header
+	 * Returns value of given header, name is case insensitive
 	 * @param name name of header
 	 * @return value of header, null if header does not exist
 	 */

@@ -35,14 +35,18 @@ public class ClientConnection {
 		this.thread.clearResponseBuilder();
 	}
 
+	/**
+	 * Sends response to client from this connection. If response has "Connection" header is "close" it will close client's channel
+	 * @param response response to send
+	 * @throws IOException when network exception occurs
+	 */
 	public void send(Response response) throws IOException {
 		if (!this.thread.equals(Thread.currentThread())) {
-			throw new IllegalStateException("handle() must be called from the same thread which created this instance of RequestHandler");
+			throw new IllegalStateException("response must be send from the same thread which created this instance of ClientConnection");
 		}
 
 		this.channel.write(ByteBuffer.wrap(HttpParser.serializeResponse(this.thread.getResponseBuilder(), response)));
 		if (response.header("Connection").equalsIgnoreCase("close")) {
-			System.out.println("Closed connection");
 			this.channel.close();
 		}
 	}

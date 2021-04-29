@@ -66,6 +66,10 @@ public class RequestHandler {
 			}
 
 			Response response = new Response(HttpStatus.OK);
+			if (request.header("Connection") != null && request.header("Connection").equalsIgnoreCase("close")) {
+				response.close();
+			}
+
 			for (MiddlewareInfo middleware : this.yuno.getMiddlewares()) {
 				middleware.getHandler().apply(request, response);
 			}

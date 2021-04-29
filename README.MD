@@ -39,6 +39,7 @@ public class MyHandlers {
     	
         if (name == null || !name.equals("mikigal")) {
             response.setStatus(HttpStatus.BAD_REQUEST); // Set response status to 400
+            response.setHeader("Foo", "Bar"); // Set header "Foo" to "Bar"
             response.close(); // Let's tell client to close connection, instead of stay with keep-alive
             return;
         }

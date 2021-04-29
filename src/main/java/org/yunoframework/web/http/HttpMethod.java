@@ -1,7 +1,5 @@
 package org.yunoframework.web.http;
 
-import java.util.Locale;
-
 public enum HttpMethod {
 	GET(true),
 	HEAD(false),

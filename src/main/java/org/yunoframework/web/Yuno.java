@@ -66,9 +66,8 @@ public class Yuno {
 	 * @return it's RouteInfo if found, else null
 	 */
 	public RouteInfo findRoute(String path) {
-		path = path.toLowerCase();
 		for (RouteInfo routeInfo : this.routes) {
-			if (routeInfo.getPath().equals(path)) {
+			if (routeInfo.getPath().equalsIgnoreCase(path)) {
 				return routeInfo;
 			}
 		}

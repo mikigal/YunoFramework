@@ -22,7 +22,7 @@ public class Request {
 	}
 
 	/**
-	 * Returns value of given parameter
+	 * Returns value of given parameter, name is case insensitive
 	 * @param name name of parameter
 	 * @return value of parameter, null if parameter does not exist
 	 */
@@ -39,7 +39,7 @@ public class Request {
 	}
 
 	/**
-	 * Returns value of given header
+	 * Returns value of given header, name is case insensitive
 	 * @param name name of header
 	 * @return value of header, null if header does not exist
 	 */

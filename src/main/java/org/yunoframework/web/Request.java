@@ -1,6 +1,7 @@
 package org.yunoframework.web;
 
 import org.yunoframework.web.http.HttpMethod;
+import org.yunoframework.web.http.HttpStatus;
 
 import java.util.Map;
 
@@ -9,13 +10,26 @@ import java.util.Map;
  */
 public class Request {
 
+	private final HttpStatus parseResult;
 	private final HttpMethod method;
 	private final String path;
 	private final Map<String, String> params;
 	private final Map<String, String> headers;
 	private final byte[] body;
 
-	public Request(HttpMethod method, String path, Map<String, String> params, Map<String, String> headers, byte[] body) {
+	/**
+	 * Creates instance of Request, should be used by {@see HttpParser}.
+	 * If something is wrong with request and parseResult it not 200 OK all other parameters can be filled with nulls
+	 * @param parseResult result of parsing request, 200 (OK) if request is correct
+	 * @param method method of request
+	 * @param path path of request
+	 * @param params params of request
+	 * @param headers headers of request
+	 * @param body body of request
+	 */
+	public Request(HttpStatus parseResult, HttpMethod method, String path,
+				   Map<String, String> params, Map<String, String> headers, byte[] body) {
+		this.parseResult = parseResult;
 		this.method = method;
 		this.path = path;
 		this.params = params;
@@ -80,5 +94,13 @@ public class Request {
 	 */
 	public byte[] getBody() {
 		return body;
+	}
+
+	/**
+	 * Returns result of parsing request, 200 (OK) if request is correct
+	 * @return result of parsing request, 200 (OK) if request is correct
+	 */
+	public HttpStatus getParseResult() {
+		return parseResult;
 	}
 }

@@ -102,8 +102,13 @@ public class Yuno {
 	 * @param method HTTP method
 	 * @param path path of endpoint
 	 * @param handler handler of endpoint {@see Handler}
+	 * @throws IllegalStateException if route with this path is already registered
 	 */
-	public void route(HttpMethod method, String path, Handler handler) {
+	public void route(HttpMethod method, String path, Handler handler)  throws IllegalStateException {
+		if (this.findRoute(path) != null) {
+			throw new IllegalStateException("Route with this path is already registered");
+		}
+
 		this.routes.add(new RouteInfo(method, path, handler));
 	}
 
@@ -114,6 +119,33 @@ public class Yuno {
 	 */
 	public void get(String path, Handler handler) {
 		this.route(HttpMethod.GET, path, handler);
+	}
+
+	/**
+	 * Registers route for POST method
+	 * @param path path of endpoint
+	 * @param handler handler of endpoint {@see Handler}
+	 */
+	public void post(String path, Handler handler) {
+		this.route(HttpMethod.POST, path, handler);
+	}
+
+	/**
+	 * Registers route for PUT method
+	 * @param path path of endpoint
+	 * @param handler handler of endpoint {@see Handler}
+	 */
+	public void put(String path, Handler handler) {
+		this.route(HttpMethod.PUT, path, handler);
+	}
+
+	/**
+	 * Registers route for DELETE method
+	 * @param path path of endpoint
+	 * @param handler handler of endpoint {@see Handler}
+	 */
+	public void delete(String path, Handler handler) {
+		this.route(HttpMethod.DELETE, path, handler);
 	}
 
 	/**

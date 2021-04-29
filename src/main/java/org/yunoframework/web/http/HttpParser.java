@@ -35,18 +35,19 @@ public class HttpParser {
 				}
 			}
 
-			String request = bodyPosition == -1 ? new String(rawRequest) : new String(rawRequest, 0, bodyPosition);
+			// -4 because we want to cut last "\r\n" from request
+			String request = bodyPosition == -1 ? new String(rawRequest) : new String(rawRequest, 0, bodyPosition - 4);
 			String[] lines = request.split("\r\n");
 
 			String[] handshake = lines[0].split(" ");
 
 			HttpMethod method = HttpMethod.getByName(handshake[0]);
 			if (method == null) {
-				throw new IllegalStateException("invalid HTTP method");
+				return new Request(HttpStatus.BAD_REQUEST, null, null, null, null, null);
 			}
 
-			if (!handshake[2].equals("HTTP/1.1")) {
-				throw new IllegalStateException("only HTTP/1.1 is supported");
+			if (!handshake[2].equalsIgnoreCase("HTTP/1.1")) {
+				return new Request(HttpStatus.HTTP_VERSION_NOT_SUPPORTED, null, null, null, null, null);
 			}
 
 			String[] endpoint = handshake[1].split("\\?");
@@ -59,9 +60,9 @@ public class HttpParser {
 				System.arraycopy(rawRequest, bodyPosition, body, 0, rawRequest.length - bodyPosition);
 			}
 
-			return new Request(method, path, params, headers, body);
+			return new Request(HttpStatus.OK, method, path, params, headers, body);
 		} catch (Exception e) {
-			return null;
+			return new Request(HttpStatus.BAD_REQUEST, null, null, null, null, null);
 		}
 	}
 

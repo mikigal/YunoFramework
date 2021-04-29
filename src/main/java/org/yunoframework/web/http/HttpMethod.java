@@ -31,7 +31,7 @@ public enum HttpMethod {
 	 */
 	public static HttpMethod getByName(String name) {
 		for (HttpMethod method : HttpMethod.values()) {
-			if (method.toString().equals(name.toUpperCase())) {
+			if (method.toString().equalsIgnoreCase(name)) {
 				return method;
 			}
 		}

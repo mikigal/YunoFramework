@@ -51,9 +51,8 @@ public class RequestHandler {
 			}
 
 			Request request = HttpParser.parseRequest(rawRequest);
-
-			if (request == null) {
-				this.connection.send(this.generateErrorResponse(HttpStatus.BAD_REQUEST));
+			if (request.getParseResult() != null && request.getParseResult() != HttpStatus.OK) {
+				this.connection.send(this.generateErrorResponse(request.getParseResult()));
 				return;
 			}
 
@@ -74,7 +73,8 @@ public class RequestHandler {
 			}
 
 			Response response = new Response(HttpStatus.OK);
-			if (request.header("Connection") != null && request.header("Connection").equalsIgnoreCase("close")) {
+			if (request.header("Connection") != null &&
+					request.header("Connection").equalsIgnoreCase("close")) {
 				response.close();
 			}
 

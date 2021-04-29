@@ -18,6 +18,7 @@ public class Yuno {
 	 */
 	public static final String VERSION = "1.0.0";
 
+	private final int maxRequestSize;
 	private final Set<RouteInfo> routes;
 	private List<MiddlewareInfo> middlewares;
 
@@ -28,7 +29,8 @@ public class Yuno {
 	 * @param threads number of used by NIO server
 	 * @see Yuno.Builder
 	 */
-	private Yuno(int threads) {
+	private Yuno(int maxRequestSize, int threads) {
+		this.maxRequestSize = maxRequestSize;
 		this.routes = new HashSet<>();
 		this.middlewares = new ArrayList<>();
 		this.socketServer = new SocketServer(this, threads);
@@ -115,6 +117,15 @@ public class Yuno {
 	}
 
 	/**
+	 * Sets maximum request size (in bytes) which Yuno will handle, if it's 0 than limit is disabled
+	 * If request is bigger server will send error 413 (Payload too large)
+	 * @return maximum request size (in bytes) which Yuno will handle
+	 */
+	public int getMaxRequestSize() {
+		return maxRequestSize;
+	}
+
+	/**
 	 * Returns new instance of Yuno's builder
 	 * @return new instance of Yuno's builder
 	 */
@@ -126,10 +137,11 @@ public class Yuno {
 	 * Yuno's builder
 	 */
 	public static final class Builder {
-		private int threads = 1;
+		private int maxRequestSize = 1024 * 1024 * 10;
+		private int threads = 4;
 
 		/**
-		 * Sets amount of threads used to handling connections by Yuno
+		 * Sets amount of threads used to handling connections by Yuno, 4 by default
 		 * @param threads amount of threads used to handling connections
 		 * @return This builder
 		 */
@@ -139,11 +151,22 @@ public class Yuno {
 		}
 
 		/**
+		 * Sets maximum request size (in bytes) which Yuno will handle, 10 megabytes by default
+		 * Set to 0 to disable this limit
+		 * If request is bigger server will send error 413 (Payload too large)
+		 * @return This builder
+		 */
+		public Yuno.Builder maxRequestSize(int maxRequestSize) {
+			this.maxRequestSize = maxRequestSize;
+			return this;
+		}
+
+		/**
 		 * Creates instance of Yuno with given parameters
 		 * @return new instance of Yuno
 		 */
 		public Yuno build() {
-			return new Yuno(this.threads);
+			return new Yuno(this.maxRequestSize, this.threads);
 		}
 	}
 }

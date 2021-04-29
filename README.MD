@@ -14,6 +14,7 @@ public class TestApplication {
     public static void main(String[] args) {
         Yuno yuno = Yuno.builder()
                 .threads(4) // How many threads will use NIO server?
+                .maxRequestSize(1024 * 1024 * 20) // Set maximum request size to 20MB
                 .build();
 
         // Register middleware with priority 0.

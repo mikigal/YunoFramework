@@ -1,6 +1,7 @@
 package org.yunoframework.web.server;
 
 import org.yunoframework.web.Yuno;
+import org.yunoframework.web.http.HttpStatus;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -86,7 +87,7 @@ public class SocketServer {
 	}
 
 	private void handleRead(SelectionKey key) {
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		ByteArrayOutputStream requestStream = new ByteArrayOutputStream();
 		SocketChannel channel = (SocketChannel) key.channel();
 		this.buffer.clear();
 
@@ -97,29 +98,37 @@ public class SocketServer {
 				byte[] bytes = new byte[this.buffer.limit()];
 				this.buffer.get(bytes);
 
-				outputStream.write(bytes);
+				requestStream.write(bytes);
 				this.buffer.clear();
+
+				if (this.yuno.getMaxRequestSize() > 0 && requestStream.size() > this.yuno.getMaxRequestSize()) {
+					this.handleRequest(requestStream, channel, HttpStatus.PAYLOAD_TOO_LARGE);
+					return;
+				}
 			}
 
 			if (read < 0) {
-				channel.close();
-				key.cancel();
+				this.close(channel, requestStream);
 				return;
 			}
 
-			threadPool.execute(() -> {
-				try {
-					byte[] rawRequest = outputStream.toByteArray();
-					outputStream.close();
-
-					new RequestHandler(yuno, rawRequest, new ClientConnection(channel)).handle();
-				} catch (IOException e) {
-					this.close(channel, outputStream);
-				}
-			});
+			this.handleRequest(requestStream, channel, null);
 		} catch (IOException e) {
-			this.close(channel, outputStream);
+			this.close(channel, requestStream);
 		}
+	}
+
+	private void handleRequest(ByteArrayOutputStream stream, SocketChannel channel, HttpStatus handleError) {
+		this.threadPool.execute(() -> {
+			try {
+				byte[] rawRequest = stream.toByteArray();
+				stream.close();
+
+				new RequestHandler(yuno, rawRequest, handleError, new ClientConnection(channel)).handle();
+			} catch (IOException e) {
+				this.close(channel, stream);
+			}
+		});
 	}
 
 	private void close(SocketChannel channel, ByteArrayOutputStream stream) {

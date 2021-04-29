@@ -17,6 +17,7 @@ public class RequestHandler {
 
 	private final Yuno yuno;
 	private final byte[] rawRequest;
+	private final HttpStatus handlingError;
 	private final ClientConnection connection;
 
 	/**
@@ -25,12 +26,14 @@ public class RequestHandler {
 	 * @param yuno instance of Yuno
 	 * @param channel connection's channel
 	 * @param rawRequest received request as unparsed String
+	 * @param handlingError error status which occured while handling request by NIO server, null if everything is good
 	 * @param connection instance of client's connection which this handler will handle
 	 * @throws IllegalStateException when constructor is called from another thread than {@see RequestHandlerThread)
 	 */
-	public RequestHandler(Yuno yuno, byte[] rawRequest, ClientConnection connection) throws IllegalStateException {
+	public RequestHandler(Yuno yuno, byte[] rawRequest, HttpStatus handlingError, ClientConnection connection) throws IllegalStateException {
 		this.yuno = yuno;
 		this.rawRequest = rawRequest;
+		this.handlingError = handlingError;
 		this.connection = connection;
 	}
 
@@ -41,9 +44,14 @@ public class RequestHandler {
 	 * @throws IOException when networking exception occurs
 	 */
 	public void handle() throws IllegalStateException, IOException {
-		Request request = HttpParser.parseRequest(rawRequest);
-
 		try {
+			if (this.handlingError != null && this.handlingError != HttpStatus.OK) {
+				this.connection.send(this.generateErrorResponse(this.handlingError));
+				return;
+			}
+
+			Request request = HttpParser.parseRequest(rawRequest);
+
 			if (request == null) {
 				this.connection.send(this.generateErrorResponse(HttpStatus.BAD_REQUEST));
 				return;

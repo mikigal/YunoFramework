@@ -13,12 +13,14 @@ public class Request {
 	private final String path;
 	private final Map<String, String> params;
 	private final Map<String, String> headers;
+	private final byte[] body;
 
-	public Request(HttpMethod method, String path, Map<String, String> params, Map<String, String> headers) {
+	public Request(HttpMethod method, String path, Map<String, String> params, Map<String, String> headers, byte[] body) {
 		this.method = method;
 		this.path = path;
 		this.params = params;
 		this.headers = headers;
+		this.body = body;
 	}
 
 	/**
@@ -70,5 +72,13 @@ public class Request {
 	 */
 	public String getPath() {
 		return this.path;
+	}
+
+	/**
+	 * Returns body of request, if it didn't have body will return 0 length bytes array
+	 * @return body of request, if it didn't have body will return 0 length bytes array
+	 */
+	public byte[] getBody() {
+		return body;
 	}
 }

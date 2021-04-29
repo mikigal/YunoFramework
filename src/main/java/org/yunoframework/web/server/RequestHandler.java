@@ -16,7 +16,7 @@ import java.io.IOException;
 public class RequestHandler {
 
 	private final Yuno yuno;
-	private final String rawRequest;
+	private final byte[] rawRequest;
 	private final ClientConnection connection;
 
 	/**
@@ -28,7 +28,7 @@ public class RequestHandler {
 	 * @param connection instance of client's connection which this handler will handle
 	 * @throws IllegalStateException when constructor is called from another thread than {@see RequestHandlerThread)
 	 */
-	public RequestHandler(Yuno yuno, String rawRequest, ClientConnection connection) throws IllegalStateException {
+	public RequestHandler(Yuno yuno, byte[] rawRequest, ClientConnection connection) throws IllegalStateException {
 		this.yuno = yuno;
 		this.rawRequest = rawRequest;
 		this.connection = connection;

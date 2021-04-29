@@ -2,6 +2,7 @@ package org.yunoframework.web.server;
 
 import org.yunoframework.web.Yuno;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -85,17 +86,18 @@ public class SocketServer {
 	}
 
 	private void handleRead(SelectionKey key) {
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		SocketChannel channel = (SocketChannel) key.channel();
+		this.buffer.clear();
 
 		try {
-			this.buffer.clear();
-			StringBuilder received = new StringBuilder();
 			int read;
 			while ((read = channel.read(this.buffer)) > 0) {
 				this.buffer.flip();
 				byte[] bytes = new byte[this.buffer.limit()];
 				this.buffer.get(bytes);
-				received.append(new String(bytes));
+
+				outputStream.write(bytes);
 				this.buffer.clear();
 			}
 
@@ -107,19 +109,23 @@ public class SocketServer {
 
 			threadPool.execute(() -> {
 				try {
-					new RequestHandler(yuno, received.toString(), new ClientConnection(channel)).handle();
+					byte[] rawRequest = outputStream.toByteArray();
+					outputStream.close();
+
+					new RequestHandler(yuno, rawRequest, new ClientConnection(channel)).handle();
 				} catch (IOException e) {
-					this.close(channel);
+					this.close(channel, outputStream);
 				}
 			});
 		} catch (IOException e) {
-			this.close(channel);
+			this.close(channel, outputStream);
 		}
 	}
 
-	private void close(SocketChannel channel) {
+	private void close(SocketChannel channel, ByteArrayOutputStream stream) {
 		try {
 			channel.close();
+			stream.close();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

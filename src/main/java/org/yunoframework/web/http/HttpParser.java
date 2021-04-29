@@ -12,19 +12,31 @@ import java.util.*;
 public class HttpParser {
 
 	public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
+	private static final byte[] BODY_PREFIX = "\r\n\r\n".getBytes(StandardCharsets.UTF_8);
+
 	static {
 		DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("GMT"));
 	}
 
 	/**
 	 * Parses HTTP request
-	 * @param raw HTTP request as text
+	 * @param rawRequest HTTP request as byte array
 	 * @return Request data, null if raw request is malformed
 	 */
-	public static Request parseRequest(String raw) {
+	public static Request parseRequest(byte[] rawRequest) {
 		try {
-			raw = raw.replace("\r\n", "\n"); // Just for safety
-			String[] lines = raw.split("\n");
+			int bodyPosition = -1;
+			for (int i = 0; i < rawRequest.length - BODY_PREFIX.length; i++) {
+				if (rawRequest[i] == BODY_PREFIX[0] &&
+						rawRequest[i + 1] == BODY_PREFIX[1] &&
+						rawRequest[i + 2] == BODY_PREFIX[2] &&
+						rawRequest[i + 3] == BODY_PREFIX[3]) {
+					bodyPosition = i + BODY_PREFIX.length;
+				}
+			}
+
+			String request = bodyPosition == -1 ? new String(rawRequest) : new String(rawRequest, 0, bodyPosition);
+			String[] lines = request.split("\r\n");
 
 			String[] handshake = lines[0].split(" ");
 
@@ -42,7 +54,12 @@ public class HttpParser {
 			Map<String, String> params = endpoint.length == 1 ? new CaseInsensitiveMap<>() : parseParams(endpoint[1]);
 			Map<String, String> headers = parseHeaders(lines);
 
-			return new Request(method, path, params, headers);
+			byte[] body = new byte[bodyPosition == -1 ? 0 : (rawRequest.length - bodyPosition)];
+			if (bodyPosition != -1) {
+				System.arraycopy(rawRequest, bodyPosition, body, 0, rawRequest.length - bodyPosition);
+			}
+
+			return new Request(method, path, params, headers, body);
 		} catch (Exception e) {
 			return null;
 		}
@@ -72,6 +89,11 @@ public class HttpParser {
 	private static Map<String, String> parseHeaders(String[] requestLines) {
 		Map<String, String> headers = new CaseInsensitiveMap<>();
 		for (int i = 1; i < requestLines.length - 1; i++) {
+			String currentLine = requestLines[i];
+			if (!currentLine.contains(": ")) {
+				continue;
+			}
+
 			String[] header = requestLines[i].split(": ");
 			headers.put(header[0], header[1]);
 		}

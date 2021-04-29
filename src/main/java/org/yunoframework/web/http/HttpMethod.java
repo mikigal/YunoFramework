@@ -2,14 +2,14 @@ package org.yunoframework.web.http;
 
 public enum HttpMethod {
 	GET(true),
-	HEAD(false),
-	POST(false),
-	PUT(false),
-	DELETE(false),
-	CONNECT(false),
-	OPTIONS(false),
-	TRACE(false),
-	PATCH(false);
+	HEAD(true),
+	POST(true),
+	PUT(true),
+	DELETE(true),
+	CONNECT(true),
+	OPTIONS(true),
+	TRACE(true),
+	PATCH(true);
 
 	private final boolean supported;
 	HttpMethod(boolean supported) {

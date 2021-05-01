@@ -31,7 +31,7 @@ public class MyHandlers {
     // Middleware
     public static void middle(Request request, Response response) throws Exception {
         System.out.println("Called middleware");
-        request.getLocals().put("foo", "bar"); // Put some data to locals, we can access it later
+        request.putLocal("foo", "bar"); // Put some data to locals, we can access it later
     }
 
     // Endpoint
@@ -41,7 +41,7 @@ public class MyHandlers {
         String foo = request.local("foo"); // Get value from "foo", middleware put it there
         
         if (response.header("Content-Type").equals("application/x-www-form-urlencoded")) {
-			// Let's get data from request's body
+            // Let's get data from request's body
             Map<String, String> body = (Map<String, String>) request.body(); 
             System.out.println(body);
         }

@@ -1,7 +1,7 @@
 package org.yunoframework.web.server;
 
-import org.yunoframework.web.Request;
-import org.yunoframework.web.Response;
+import org.yunoframework.web.data.Request;
+import org.yunoframework.web.data.Response;
 import org.yunoframework.web.Yuno;
 import org.yunoframework.web.http.HttpStatus;
 import org.yunoframework.web.routing.MiddlewareInfo;
@@ -75,7 +75,7 @@ public class RequestHandler {
 			Response response = new Response(HttpStatus.OK);
 			if (request.header("Connection") != null &&
 					request.header("Connection").equalsIgnoreCase("close")) {
-				response.close();
+				response.markToClose();
 			}
 
 			for (MiddlewareInfo middleware : this.yuno.getMiddlewares()) {
@@ -94,7 +94,7 @@ public class RequestHandler {
 		Response response = new Response(status);
 		response.html("<html><head><title>" + status.getMessage() + "</title></head>" +
 				"<body><h1>" + status.getMessage() + "</h1><hr /><h3>Yuno/1.0</h3></body></html>", status);
-		response.close();
+		response.markToClose();
 
 		return response;
 	}

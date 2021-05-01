@@ -1,6 +1,6 @@
 package org.yunoframework.web.server;
 
-import org.yunoframework.web.Response;
+import org.yunoframework.web.data.Response;
 import org.yunoframework.web.http.HttpParser;
 
 import java.io.IOException;

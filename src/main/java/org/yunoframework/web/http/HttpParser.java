@@ -1,8 +1,9 @@
 package org.yunoframework.web.http;
 
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
-import org.yunoframework.web.Request;
-import org.yunoframework.web.Response;
+import org.yunoframework.web.data.MultipartEntry;
+import org.yunoframework.web.data.Request;
+import org.yunoframework.web.data.Response;
 import org.yunoframework.web.Yuno;
 
 import java.io.UnsupportedEncodingException;
@@ -27,18 +28,8 @@ public class HttpParser {
 	 */
 	public static Request parseRequest(byte[] rawRequest) {
 		try {
-			int bodyPosition = -1;
-			for (int i = 0; i < rawRequest.length - BODY_PREFIX.length; i++) {
-				if (rawRequest[i] == BODY_PREFIX[0] &&
-						rawRequest[i + 1] == BODY_PREFIX[1] &&
-						rawRequest[i + 2] == BODY_PREFIX[2] &&
-						rawRequest[i + 3] == BODY_PREFIX[3]) {
-					bodyPosition = i + BODY_PREFIX.length;
-				}
-			}
-
-			// -4 because we want to cut last "\r\n" from request
-			String request = bodyPosition == -1 ? new String(rawRequest) : new String(rawRequest, 0, bodyPosition - 4);
+			int bodyPosition = findPattern(rawRequest, BODY_PREFIX, 0, rawRequest.length, false);
+			String request = bodyPosition == -1 ? new String(rawRequest) : new String(rawRequest, 0, bodyPosition);
 			String[] lines = request.split("\r\n");
 
 			String[] handshake = lines[0].split(" ");
@@ -57,21 +48,28 @@ public class HttpParser {
 			String[] endpoint = handshake[1].split("\\?");
 			String path = endpoint[0];
 			Map<String, String> params = endpoint.length == 1 ? new CaseInsensitiveMap<>() : parseParams(endpoint[1]);
-			Map<String, String> headers = parseHeaders(lines);
+			Map<String, String> headers = parseHeaders(lines, 1);
 
 			byte[] rawContent = new byte[bodyPosition == -1 ? 0 : (rawRequest.length - bodyPosition)];
 			if (bodyPosition != -1) {
 				System.arraycopy(rawRequest, bodyPosition, rawContent, 0, rawRequest.length - bodyPosition);
 			}
 
+			String contentType = headers.get("Content-Type");
 			Object body = null;
-			if (bodyPosition != -1 && headers.get("Content-Type") != null &&
-					headers.get("Content-Type").equalsIgnoreCase("application/x-www-form-urlencoded")) {
+			if (bodyPosition != -1 && contentType != null && contentType.equalsIgnoreCase("application/x-www-form-urlencoded")) {
 				body = parseParams(new String(rawContent));
+			}
+			else if (bodyPosition != -1 && contentType != null && contentType.contains("multipart/form-data")) {
+				body = parseMultipart(contentType, rawContent);
+			}
+			else if (bodyPosition != -1) {
+				body = rawContent;
 			}
 
 			return new Request(HttpStatus.OK, method, path, params, headers, rawContent, body);
 		} catch (Exception e) {
+			e.printStackTrace();
 			return new Request(HttpStatus.BAD_REQUEST,
 					null, null, null, null, null, null);
 		}
@@ -95,22 +93,98 @@ public class HttpParser {
 
 	/**
 	 * Parse headers from HTTP request given as String to to <code>Map<HeaderName, HeaderValue></code>
-	 * @param requestLines all lines as request
+	 * It stop scanning when found first line without ": "
+	 * @param headerLines all lines as request
+	 * @param startLine from which line will search for headers
 	 * @return Map with parser parameters
 	 */
-	private static Map<String, String> parseHeaders(String[] requestLines) {
+	private static Map<String, String> parseHeaders(String[] headerLines, int startLine) {
 		Map<String, String> headers = new CaseInsensitiveMap<>();
-		for (int i = 1; i < requestLines.length - 1; i++) {
-			String currentLine = requestLines[i];
+		for (int i = startLine; i < headerLines.length; i++) {
+			String currentLine = headerLines[i];
 			if (!currentLine.contains(": ")) {
-				continue;
+				break;
 			}
 
-			String[] header = requestLines[i].split(": ");
+			String[] header = headerLines[i].split(": ");
 			headers.put(header[0], header[1]);
 		}
 
 		return headers;
+	}
+
+	/**
+	 * Parses multipart/form-data request's body
+	 * @param contentType Content-Type parameter of request
+	 * @param rawContent request's body as byte array
+	 * @return Map with multipart request entries, with it's name as key
+	 */
+	private static Map<String, MultipartEntry> parseMultipart(String contentType, byte[] rawContent) {
+		// TODO: 01/05/2021 Rewrite it to work on byte array instead of String, it will be much faster
+		String content = new String(rawContent);
+		String boundary = parseHeaderParameters(contentType).get("boundary");
+		if (boundary == null) {
+			throw new IllegalStateException("boundary not found (" + contentType + ")");
+		}
+
+		content = content.replace("--" + boundary + "--\r\n", ""); // Remove closing tag
+		boundary = "--" + boundary + "\r\n";
+
+		Map<String, MultipartEntry> entries = new CaseInsensitiveMap<>();
+		for (String entry : content.split(boundary)) {
+			String[] split = entry.split("\r\n\r\n");
+			if (split.length != 2) {
+				continue;
+			}
+
+			String rawHeaders = split[0];
+			String body = split[1];
+			body = body.substring(0, body.length() - 2); // Cut last "\r\n"
+
+			Map<String, String> headers = parseHeaders(rawHeaders.split("\r\n"), 0);
+			String contentDisposition = headers.get("Content-Disposition");
+
+			if (contentDisposition == null) {
+				throw new IllegalStateException("missing Content-Disposition header in multipart entry");
+			}
+
+			Map<String, String> dispositionParameters = parseHeaderParameters(contentDisposition);
+			if (!dispositionParameters.containsKey("name")) {
+				throw new IllegalStateException("missing name parameter in Content-Disposition header");
+			}
+
+			entries.put(dispositionParameters.get("name"),
+					new MultipartEntry(
+						dispositionParameters.get("name"),
+						dispositionParameters.get("filename"),
+						contentDisposition,
+						headers.get("Content-Type"),
+						body.getBytes(StandardCharsets.UTF_8)
+					)
+			);
+		}
+
+		return entries;
+	}
+
+	/**
+	 * Parses parameters from header delimited by ";" (e. g. Content-Disposition: form-data; name="image"; filename="foo.png")
+	 * @param header header to parse
+	 * @return parsed parameters
+	 */
+	private static Map<String, String> parseHeaderParameters(String header) {
+		Map<String, String> parameters = new CaseInsensitiveMap<>();
+		header = header.replace("; ", ";");
+		for (String parameter : header.split(";")) {
+			if (!parameter.contains("=")) {
+				continue;
+			}
+
+			String[] split = parameter.split("=");
+			parameters.put(split[0], split[1].replace("\"", ""));
+		}
+
+		return parameters;
 	}
 
 	/**
@@ -150,5 +224,39 @@ public class HttpParser {
 		if (response.header("Connection") == null) {
 			response.setHeader("Connection", "keep-alive");
 		}
+	}
+
+	/**
+	 * Searches for pattern in given array, returns position where pattern end in array
+	 * @param array array to search in
+	 * @param pattern pattern to find
+	 * @param offset position from which to look for pattern
+	 * @param limit position to which to look for pattern
+	 * @param returnStart if true will return index of first pattern's byte, else fire byte after pattern
+	 * @return found position, -1 if not found
+	 */
+	private static int findPattern(byte[] array, byte[] pattern, int offset, int limit, boolean returnStart) {
+		for (int i = offset; i < limit - pattern.length; i++) {
+
+			boolean error = false;
+			for (int j = 0; j < pattern.length; j++) {
+				if (array[i + j] != pattern[j]) {
+					error = true;
+					break;
+				}
+			}
+
+			if (!error) {
+				return returnStart ? i : (i + pattern.length);
+			}
+		}
+		return -1;
+	}
+
+	private static void dump(byte[] a) {
+		StringBuilder sb = new StringBuilder(a.length * 2);
+		for(byte b: a)
+			sb.append(String.format("%02x", b));
+		System.out.println(sb.toString());
 	}
 }

@@ -1,4 +1,4 @@
-package org.yunoframework.web;
+package org.yunoframework.web.data;
 
 import com.jsoniter.output.JsonStream;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
@@ -170,7 +170,7 @@ public class Response {
 	 * Lets tell client to close connection after receive this response
 	 * It sets "Connection" header to "close"
 	 */
-	public void close() {
+	public void markToClose() {
 		this.setHeader("Connection", "close");
 	}
 

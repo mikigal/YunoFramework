@@ -1,4 +1,4 @@
-package org.yunoframework.web;
+package org.yunoframework.web.data;
 
 import org.yunoframework.web.http.HttpMethod;
 import org.yunoframework.web.http.HttpStatus;
@@ -103,7 +103,9 @@ public class Request {
 
 	/**
 	 * Returns parsed body
-	 * If request was x-www-form-urlencoded returned Object will be instance of Map<String, String>
+	 * If request body was x-www-form-urlencoded returned Object will be instance of Map<String, String>
+	 * If request body was multipart/form-data returned Object will ne instance of Map<String, MultipartEntry>
+	 * If request body was other type returned Object will be byte array from request's body
 	 * If request didn't have body it will be null
 	 * @return parsed body, null if request didn't have body
 	 */

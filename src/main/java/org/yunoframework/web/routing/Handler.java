@@ -1,7 +1,7 @@
 package org.yunoframework.web.routing;
 
-import org.yunoframework.web.Request;
-import org.yunoframework.web.Response;
+import org.yunoframework.web.data.Request;
+import org.yunoframework.web.data.Response;
 
 /**
  * Handler of route or middleware

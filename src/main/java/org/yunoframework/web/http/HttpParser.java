@@ -120,27 +120,33 @@ public class HttpParser {
 	 * @return Map with multipart request entries, with it's name as key
 	 */
 	private static Map<String, MultipartEntry> parseMultipart(String contentType, byte[] rawContent) {
-		// TODO: 01/05/2021 Rewrite it to work on byte array instead of String, it will be much faster
-		String content = new String(rawContent);
-		String boundary = parseHeaderParameters(contentType).get("boundary");
-		if (boundary == null) {
+		String rawBoundary = parseHeaderParameters(contentType).get("boundary");
+		if (rawBoundary == null) {
 			throw new IllegalStateException("boundary not found (" + contentType + ")");
 		}
 
-		content = content.replace("--" + boundary + "--\r\n", ""); // Remove closing tag
-		boundary = "--" + boundary + "\r\n";
+		byte[] boundary = ("--" + rawBoundary + "\r\n").getBytes(StandardCharsets.UTF_8);
 
 		Map<String, MultipartEntry> entries = new CaseInsensitiveMap<>();
-		for (String entry : content.split(boundary)) {
-			String[] split = entry.split("\r\n\r\n");
-			if (split.length != 2) {
-				continue;
+		for (int i = 0; i < rawContent.length; i++) {
+			int start = findPattern(rawContent, boundary, i, rawContent.length, false);
+			if (start == -1) {
+				continue; // Entry does not start here, let's check next byte
 			}
 
-			String rawHeaders = split[0];
-			String body = split[1];
-			body = body.substring(0, body.length() - 2); // Cut last "\r\n"
+			int end = findPattern(rawContent, boundary, start, rawContent.length, true);
+			if (end == -1) {
+				end = rawContent.length - boundary.length - 4; // Cut additional "--" from closing boundary and "\r\n"
+			}
 
+			int bodyStart = findPattern(rawContent, BODY_PREFIX, start, end, false);
+			int headersLength = bodyStart - start - 2; // Cut "\r\n"
+
+			boolean needCut = rawContent[end - 1] == 0x0A && rawContent[end - 2] == 0x0D; // Check if body ends with "\r\n"
+			byte[] body = new byte[end - bodyStart - (needCut ? 2 : 0)]; // If body ends with "\r\n" we want to cut it
+			System.arraycopy(rawContent, bodyStart, body, 0, body.length);
+
+			String rawHeaders = new String(rawContent, start, headersLength);
 			Map<String, String> headers = parseHeaders(rawHeaders.split("\r\n"), 0);
 			String contentDisposition = headers.get("Content-Disposition");
 
@@ -159,9 +165,11 @@ public class HttpParser {
 						dispositionParameters.get("filename"),
 						contentDisposition,
 						headers.get("Content-Type"),
-						body.getBytes(StandardCharsets.UTF_8)
+						body
 					)
 			);
+
+			i = end - 1; // Jump to ending of current entry
 		}
 
 		return entries;
@@ -227,15 +235,15 @@ public class HttpParser {
 	}
 
 	/**
-	 * Searches for pattern in given array, returns position where pattern end in array
+	 * Searches for pattern in given array, returns first position where pattern occurs in array
 	 * @param array array to search in
 	 * @param pattern pattern to find
 	 * @param offset position from which to look for pattern
 	 * @param limit position to which to look for pattern
-	 * @param returnStart if true will return index of first pattern's byte, else fire byte after pattern
+	 * @param findStartPos if true will return index of first pattern's byte, else fire byte after pattern
 	 * @return found position, -1 if not found
 	 */
-	private static int findPattern(byte[] array, byte[] pattern, int offset, int limit, boolean returnStart) {
+	private static int findPattern(byte[] array, byte[] pattern, int offset, int limit, boolean findStartPos) {
 		for (int i = offset; i < limit - pattern.length; i++) {
 
 			boolean error = false;
@@ -247,7 +255,7 @@ public class HttpParser {
 			}
 
 			if (!error) {
-				return returnStart ? i : (i + pattern.length);
+				return findStartPos ? i : (i + pattern.length);
 			}
 		}
 		return -1;

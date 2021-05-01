@@ -1,5 +1,7 @@
 package org.yunoframework.web.data;
 
+import java.util.Arrays;
+
 /**
  * Representation of entry in multipart request
  */
@@ -57,5 +59,16 @@ public class MultipartEntry {
 	 */
 	public byte[] content() {
 		return content;
+	}
+
+	@Override
+	public String toString() {
+		return "MultipartEntry{" +
+				"name='" + name + '\'' +
+				", filename='" + filename + '\'' +
+				", contentDisposition='" + contentDisposition + '\'' +
+				", contentType='" + contentType + '\'' +
+				", content=" + Arrays.toString(content) +
+				'}';
 	}
 }

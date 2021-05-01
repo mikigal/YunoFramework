@@ -47,7 +47,11 @@ public class ClientConnection {
 
 		this.channel.write(ByteBuffer.wrap(HttpParser.serializeResponse(this.thread.getResponseBuilder(), response)));
 		if (response.header("Connection").equalsIgnoreCase("close")) {
+			System.out.println("Closed");
 			this.channel.close();
+		}
+		else {
+			System.out.println("keeped");
 		}
 	}
 }

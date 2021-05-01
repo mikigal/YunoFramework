@@ -61,6 +61,11 @@ public class RequestHandler {
 				return;
 			}
 
+			if (request.header("Transfer-Encoding") != null && 
+					!request.header("Transfer-Encoding").equalsIgnoreCase("identity")) {
+				System.err.println(this);this.generateErrorResponse(HttpStatus.NOT_IMPLEMENTED);
+			}
+
 			RouteInfo routeInfo = yuno.findRoute(request.path());
 			if (routeInfo == null) {
 				this.connection.send(this.generateErrorResponse(HttpStatus.NOT_FOUND));
@@ -83,6 +88,8 @@ public class RequestHandler {
 			}
 
 			routeInfo.getHandler().apply(request, response);
+
+			response.markToClose(); // TODO: 01/05/2021 Fix parting requests with keep-alive
 			this.connection.send(response);
 		} catch (Exception e) {
 			this.connection.send(this.generateErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR));
